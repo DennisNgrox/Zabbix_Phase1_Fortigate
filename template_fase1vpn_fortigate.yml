@@ -1,0 +1,77 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: 48f0515e84634e26b777bfdf47190fb8
+      name: Fortigate
+  templates:
+    - uuid: 1310949877ff4d468cec321ee857536e
+      template: 'FASES VPN FORTIGATE'
+      name: 'FASES VPN FORTIGATE'
+      groups:
+        - name: Fortigate
+      items:
+        - uuid: 1f1df8bf9c18484eaa6fe4bf6453b73f
+          name: 'VPN FASES'
+          type: EXTERNAL
+          key: fases_vpn.py
+          value_type: TEXT
+          trends: '0'
+      discovery_rules:
+        - uuid: b15f40805c914f2e8f7991ef23c5b27f
+          name: 'VPN Fase1 Discovery'
+          type: DEPENDENT
+          key: vpn.discovery.fase1
+          delay: '0'
+          lifetime_type: DELETE_IMMEDIATELY
+          lifetime: '0'
+          item_prototypes:
+            - uuid: 368805c978ac4709bb65ecbe44cf76f5
+              name: '{#PREFIX} - Fase 1'
+              type: DEPENDENT
+              key: 'vpn[{#PREFIX}.{#INDEX}]'
+              delay: '0'
+              value_type: TEXT
+              trends: '0'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[?(@.prefix == "{#PREFIX}")].msg'
+                - type: TRIM
+                  parameters:
+                    - '['
+                - type: TRIM
+                  parameters:
+                    - ']'
+                - type: TRIM
+                  parameters:
+                    - '"'
+              master_item:
+                key: fases_vpn.py
+              trigger_prototypes:
+                - uuid: 487dc2679ab440f6b7f3f8563acac40e
+                  expression: 'find(/FASES VPN FORTIGATE/vpn[{#PREFIX}.{#INDEX}],,"like","\"VPN is Down\"")'
+                  name: '{#PREFIX} Fase 1 Down'
+                  event_name: '{#PREFIX} Fase 1 Down - Total vpn-fase2: {#TOTAL}, Number of inactive vpn-fase2: {#DOWN}'
+                  priority: HIGH
+                  manual_close: 'YES'
+          master_item:
+            key: fases_vpn.py
+          lld_macro_paths:
+            - lld_macro: '{#DOWN}'
+              path: $.down
+            - lld_macro: '{#INDEX}'
+              path: $.index
+            - lld_macro: '{#MSG}'
+              path: $.msg
+            - lld_macro: '{#PREFIX}'
+              path: $.prefix
+            - lld_macro: '{#TOTAL}'
+              path: $.total
+      valuemaps:
+        - uuid: 779a0607a33244b7872020f3cc238dce
+          name: 'Message VPN fases'
+          mappings:
+            - value: 'VPN is Up'
+              newvalue: '1'
+            - value: 'VPN is Down'
+              newvalue: '0'
